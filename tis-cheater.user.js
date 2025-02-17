@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SUSTech tis cheater
 // @namespace    https://blog.vollate.top/
-// @version      1.3.0
+// @version      1.3.1
 // @description  SUSTech 可能会变质，但绝对不会倒闭
 // @author       Vollate
 // @match        https://tis.sustech.edu.cn/*
@@ -16,7 +16,7 @@
 (function ($) {
     $(document).ready(function () {
         'use strict';
-
+        const DEFAULT_INTERVAL = 1600;
         const FetchHeaders = {
             "Accept": "*/*",
             "Accept-Encoding": "gzip, deflate, br",
@@ -103,12 +103,25 @@
                 borderRadius: '5px',
                 cursor: 'pointer',
                 fontSize: '16px'
-            },
-            popupNotification: {
+            }, popupNotification: {
                 position: 'fixed',
                 top: '20px',
                 right: '20px',
                 backgroundColor: '#01af15',
+                color: '#fff',
+                padding: '10px 20px',
+                borderRadius: '5px',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+                zIndex: '1001',
+                fontSize: '16px',
+                opacity: '0.9',
+                display: 'flex',
+                alignItems: 'center'
+            }, popupErrorNotification: {
+                position: 'fixed',
+                top: '20px',
+                right: '20px',
+                backgroundColor: '#af012a',
                 color: '#fff',
                 padding: '10px 20px',
                 borderRadius: '5px',
@@ -146,18 +159,15 @@
                 backgroundColor: '#f1f1f1',
                 zIndex: '1001'
             }, timeInput: {
-                width: '60px',
-                padding: '5px',
-                marginRight: '10px',
-                fontSize: '16px'
+                width: '60px', padding: '5px', marginRight: '10px', fontSize: '16px'
             }
         };
 
         const originalXHROpen = XMLHttpRequest.prototype.open;
         const originalXHRSend = XMLHttpRequest.prototype.send;
 
-        function showAsyncPopup(message, duration) {
-            let $popup = $('<div>').css(CSSManager.popupNotification);
+        function showAsyncPopup(message, css_style, duration) {
+            let $popup = $('<div>').css(css_style);
 
             $popup.text(message);
 
@@ -231,10 +241,13 @@
                                 body: xhrBodyToFetchBody(body),
                                 credentials: 'include'
                             }).then(res => res.json()).then(data => {
-                                let CourseName = data.message.split('课程：')[1];
                                 console.log(data);
-                                showAsyncPopup("Add course \"" + CourseName + "\" to course list", 5000);
-                                appendGMAry_('SelectedCourses', {name: CourseName, body: xhrBodyToFetchBody(body)});
+                                let courseName = data.message.split('课程：')[1];
+                                showAsyncPopup("Add course \"" + courseName + "\" to course list", CSSManager.popupNotification, 5000);
+                                appendGMAry_('SelectedCourses', {name: courseName, body: xhrBodyToFetchBody(body)});
+                            }).catch(err => {
+                                console.error(err);
+                                showAsyncPopup("Failed to add course to course list", CSSManager.popupErrorNotification, 5000);
                             })
                         });
                     }
@@ -282,7 +295,7 @@
                 alert('Your course list is empty, you need to add at least one course');
                 return;
             }
-            showAsyncPopup('SUSTech tis cheater: start', 5000);
+            showAsyncPopup('SUSTech tis cheater: start', CSSManager.popupNotification, 5000);
 
             if ($('#messageContainer').length === 0) {
                 createMessageContainer();
@@ -305,7 +318,7 @@
                 }
             }
 
-            showAsyncPopup('SUSTech tis cheater: stop', 5000);
+            showAsyncPopup('SUSTech tis cheater: stop', CSSManager.popupNotification, 5000);
         }
 
         function updateCourses(courses) {
@@ -321,7 +334,7 @@
             hadInit = true;
             GM_registerMenuCommand("Start", () => {
                 GM_setValue('Start', '1');
-                startRace_(getGMAry_('SelectedCourses'), GM_getValue('Interval', 200));
+                startRace_(getGMAry_('SelectedCourses'), GM_getValue('Interval', DEFAULT_INTERVAL));
             });
 
             GM_registerMenuCommand("Schedule Start", () => {
@@ -339,35 +352,24 @@
 
                 const $inputGroup = $('<div>')
                     .css({
-                        display: 'flex',
-                        justifyContent: 'space-around',
-                        margin: '20px 0'
+                        display: 'flex', justifyContent: 'space-around', margin: '20px 0'
                     });
 
                 const $hourInput = $('<input>')
                     .attr({
-                        type: 'number',
-                        placeholder: 'HH',
-                        min: '0',
-                        max: '23'
+                        type: 'number', placeholder: 'HH', min: '0', max: '23'
                     })
                     .css(CSSManager.timeInput);
 
                 const $minuteInput = $('<input>')
                     .attr({
-                        type: 'number',
-                        placeholder: 'MM',
-                        min: '0',
-                        max: '59'
+                        type: 'number', placeholder: 'MM', min: '0', max: '59'
                     })
                     .css(CSSManager.timeInput);
 
                 const $secondInput = $('<input>')
                     .attr({
-                        type: 'number',
-                        placeholder: 'SS',
-                        min: '0',
-                        max: '59'
+                        type: 'number', placeholder: 'SS', min: '0', max: '59'
                     })
                     .css(CSSManager.timeInput);
 
@@ -382,14 +384,7 @@
                         const seconds = parseInt($secondInput.val(), 10) || 0;
 
                         const now = new Date();
-                        const targetTime = new Date(
-                            now.getFullYear(),
-                            now.getMonth(),
-                            now.getDate(),
-                            hours,
-                            minutes,
-                            seconds
-                        );
+                        const targetTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, seconds);
 
                         let remainingTime = targetTime - now;
 
@@ -407,14 +402,10 @@
 
                         setTimeout(() => {
                             GM_setValue('Start', '1');
-                            startRace_(getGMAry_('SelectedCourses'), GM_getValue('Interval', 200));
+                            startRace_(getGMAry_('SelectedCourses'), GM_getValue('Interval', DEFAULT_INTERVAL));
                         }, remainingTime);
 
-                        alert(
-                            `Task scheduled to run at ${targetTime.toLocaleTimeString()} (${Math.floor(
-                                remainingTime / 1000
-                            )} seconds from now)`
-                        );
+                        alert(`Task scheduled to run at ${targetTime.toLocaleTimeString()} (${Math.floor(remainingTime / 1000)} seconds from now)`);
                     });
 
                 const $cancelButton = $('<button>')
@@ -426,9 +417,7 @@
 
                 const $buttonGroup = $('<div>')
                     .css({
-                        display: 'flex',
-                        justifyContent: 'center',
-                        gap: '20px'
+                        display: 'flex', justifyContent: 'center', gap: '20px'
                     })
                     .append($cancelButton, $confirmButton);
 
@@ -491,7 +480,7 @@
             });
 
             GM_registerMenuCommand("Set Interval", () => {
-                let interval = prompt('Set the interval between each request (ms)', GM_getValue('Interval', 200));
+                let interval = prompt('Set the interval between each request (ms)', GM_getValue('Interval', DEFAULT_INTERVAL));
                 GM_setValue('Interval', interval);
             });
         }
