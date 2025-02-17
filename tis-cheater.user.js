@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SUSTech tis cheater
 // @namespace    https://blog.vollate.top/
-// @version      1.3.1
+// @version      1.3.2
 // @description  SUSTech 可能会变质，但绝对不会倒闭
 // @author       Vollate
 // @match        https://tis.sustech.edu.cn/*
@@ -474,7 +474,7 @@
             });
 
             GM_registerMenuCommand("Clear all courses", () => {
-                if (confirm('Are you sure to clear selected all courses?')) {
+                if (confirm('Are you sure to clear all selected courses?')) {
                     clearGM_('SelectedCourses');
                 }
             });
